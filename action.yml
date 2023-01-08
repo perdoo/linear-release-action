@@ -1,0 +1,21 @@
+name: Linear Release Action
+description: Generate release notes
+branding:
+  icon: arrow-down-circle
+  color: red
+inputs:
+  linearToken:
+    description: Linear API key
+    required: true
+  stateId:
+    description: The workflow state id to which the issues are assigned to
+    required: true
+  label:
+    description: The label name to which the issues are assigned to
+    required: false
+outputs:
+  release-notes:
+    description: Release notes
+runs:
+  using: "node16"
+  main: "index.js"
