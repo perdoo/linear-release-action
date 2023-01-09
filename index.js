@@ -15,7 +15,10 @@ const getBugs = async (linearClient, stateIds, label) => {
   const issues = await linearClient.issues({
     filter: {
       labels: {
-        and: [{ name: { eq: "Bug" } }, label ? { name: { eq: label } } : {}],
+        and: [
+          { name: { in: ["Bug", "Release Blocker"] } },
+          label ? { name: { eq: label } } : {},
+        ],
       },
       state: { id: { in: stateIds } },
       project: { null: true },
@@ -97,7 +100,7 @@ const formatProjects = (projects) =>
       name = `<${url}|${escapeText(name)}>`;
       progress = formatProgress(progress);
       targetDate = formatTargetDate(targetDate);
-      return `- ${name}, Progress: ${progress}, Target date: ${targetDate}`;
+      return `- ${name}, Progress: ${progress}, Target stage release date: ${targetDate}`;
     })
     .join("\n") || "_No projects_";
 
@@ -107,14 +110,7 @@ const formatProgress = (progress) =>
 const formatTargetDate = (targetDate) =>
   targetDate ? `${new Date(targetDate).toLocaleDateString("de-DE")}` : "/";
 
-const hasIssues = (...lists) => {
-  for (var i = 0; i < lists.length; i++) {
-    if (lists[i].nodes.length) {
-      return true;
-    }
-  }
-  return false;
-};
+const hasIssues = (...lists) => lists.some(({ nodes }) => nodes.length);
 
 const run = async () => {
   try {
