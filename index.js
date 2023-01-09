@@ -69,8 +69,7 @@ const getProjects = async (linearClient, stateIds, label) => {
   });
   const projects = {};
 
-  for (let i = 0; i < issues.nodes.length; i++) {
-    const issue = issues.nodes[i];
+  for (const issue of issues.nodes) {
     if (!(issue._project.id in projects)) {
       projects[issue._project.id] = await issue.project;
     }
