@@ -47,7 +47,7 @@ const getFastTracks = async (linearClient, stateIds, label) => {
     filter: {
       labels: {
         and: [
-          { every: { name: { nin: ["Bug", "Chore"] } } },
+          { every: { name: { nin: ["Bug", "Chore", "Release Blocker"] } } },
           label ? { name: { eq: label } } : {},
         ],
       },
