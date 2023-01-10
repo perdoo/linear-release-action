@@ -11,12 +11,26 @@ const ESCAPE = {
 };
 const ESPACE_REGEX = new RegExp(Object.keys(ESCAPE).join("|"), "gi");
 
-const getBugs = async (linearClient, stateIds, label) => {
+const BUG_LABELS = ["Bug", "Release Blocker"];
+const CHORE_LABELS = ["Chore"];
+const FAST_TRACK_LABELS = ["Fast Track"];
+const ALL_LABELS = [...BUG_LABELS, ...CHORE_LABELS, ...FAST_TRACK_LABELS];
+
+const getBugs = async (linearClient, stateIds, label) =>
+  await getIssues(linearClient, stateIds, label, BUG_LABELS);
+
+const getChores = async (linearClient, stateIds, label) =>
+  await getIssues(linearClient, stateIds, label, CHORE_LABELS);
+
+const getFastTracks = async (linearClient, stateIds, label) =>
+  await getIssues(linearClient, stateIds, label, FAST_TRACK_LABELS);
+
+const getOther = async (linearClient, stateIds, label) => {
   const issues = await linearClient.issues({
     filter: {
       labels: {
         and: [
-          { name: { in: ["Bug", "Release Blocker"] } },
+          { every: { name: { nin: ALL_LABELS } } },
           label ? { name: { eq: label } } : {},
         ],
       },
@@ -28,27 +42,13 @@ const getBugs = async (linearClient, stateIds, label) => {
   return removeChildIssues(issues);
 };
 
-const getChores = async (linearClient, stateIds, label) => {
-  const issues = await linearClient.issues({
-    filter: {
-      labels: {
-        and: [{ name: { eq: "Chore" } }, label ? { name: { eq: label } } : {}],
-      },
-      state: { id: { in: stateIds } },
-      project: { null: true },
-    },
-  });
-
-  return removeChildIssues(issues);
-};
-
-const getFastTracks = async (linearClient, stateIds, label) => {
+const getIssues = async (linearClient, stateIds, releaseLabel, typeLabels) => {
   const issues = await linearClient.issues({
     filter: {
       labels: {
         and: [
-          { every: { name: { nin: ["Bug", "Chore", "Release Blocker"] } } },
-          label ? { name: { eq: label } } : {},
+          { name: { in: typeLabels } },
+          releaseLabel ? { name: { eq: releaseLabel } } : {},
         ],
       },
       state: { id: { in: stateIds } },
@@ -129,6 +129,7 @@ const run = async () => {
     const bugs = await getBugs(linearClient, stateIds, label);
     const chores = await getChores(linearClient, stateIds, label);
     const fastTracks = await getFastTracks(linearClient, stateIds, label);
+    const other = await getOther(linearClient, stateIds, label);
     const projects = await getProjects(linearClient, stateIds, label);
 
     core.setOutput("has-issues", hasIssues(bugs, chores, fastTracks));
@@ -140,6 +141,8 @@ ${formatIssues(fastTracks)}
 ${formatIssues(bugs)}
 *Chores*
 ${formatIssues(chores)}
+*Other*
+${formatIssues(other)}
 *Projects*
 ${formatProjects(projects)}
   `;
