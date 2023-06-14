@@ -132,7 +132,7 @@ const run = async () => {
     const other = await getOther(linearClient, stateIds, label);
     const projects = await getProjects(linearClient, stateIds, label);
 
-    core.setOutput("has-issues", hasIssues(bugs, chores, fastTracks));
+    core.setOutput("has-issues", hasIssues(bugs, chores, fastTracks, other));
 
     const releaseNotes = `
 *Fast Track*

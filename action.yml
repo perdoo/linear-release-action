@@ -7,8 +7,8 @@ inputs:
   linearToken:
     description: Linear API key
     required: true
-  stateId:
-    description: The workflow state id to which the issues are assigned to
+  stateIds:
+    description: Workflow state ids to which the issues are assigned to
     required: true
   label:
     description: The label name to which the issues are assigned to
