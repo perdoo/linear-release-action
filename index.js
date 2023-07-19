@@ -13,33 +13,12 @@ const ESPACE_REGEX = new RegExp(Object.keys(ESCAPE).join("|"), "gi");
 
 const BUG_LABELS = ["Bug", "Release Blocker"];
 const CHORE_LABELS = ["Chore"];
-const FAST_TRACK_LABELS = ["Fast Track"];
-const ALL_LABELS = [...BUG_LABELS, ...CHORE_LABELS, ...FAST_TRACK_LABELS];
+const FEATURE_LABELS = ["Feature"];
+const ALL_LABELS = [...BUG_LABELS, ...CHORE_LABELS, ...FEATURE_LABELS];
 
-const getBugs = async (linearClient, stateIds, label) =>
-  await getIssues(linearClient, stateIds, label, BUG_LABELS);
-
-const getChores = async (linearClient, stateIds, label) =>
-  await getIssues(linearClient, stateIds, label, CHORE_LABELS);
-
-const getFastTracks = async (linearClient, stateIds, label) =>
-  await getIssues(linearClient, stateIds, label, FAST_TRACK_LABELS);
-
-const getOther = async (linearClient, stateIds, label) => {
-  const issues = await linearClient.issues({
-    filter: {
-      labels: {
-        and: [
-          { every: { name: { nin: ALL_LABELS } } },
-          label ? { name: { eq: label } } : {},
-        ],
-      },
-      state: { id: { in: stateIds } },
-      project: { null: true },
-    },
-  });
-
-  return removeChildIssues(issues);
+const removeChildIssues = (issues) => {
+  issues.nodes = issues.nodes.filter((issue) => issue._parent === undefined);
+  return issues;
 };
 
 const getIssues = async (linearClient, stateIds, releaseLabel, typeLabels) => {
@@ -59,6 +38,32 @@ const getIssues = async (linearClient, stateIds, releaseLabel, typeLabels) => {
   return removeChildIssues(issues);
 };
 
+const getBugs = async (linearClient, stateIds, label) =>
+  getIssues(linearClient, stateIds, label, BUG_LABELS);
+
+const getChores = async (linearClient, stateIds, label) =>
+  getIssues(linearClient, stateIds, label, CHORE_LABELS);
+
+const getFeatures = async (linearClient, stateIds, label) =>
+  getIssues(linearClient, stateIds, label, FEATURE_LABELS);
+
+const getOther = async (linearClient, stateIds, label) => {
+  const issues = await linearClient.issues({
+    filter: {
+      labels: {
+        and: [
+          { every: { name: { nin: ALL_LABELS } } },
+          label ? { name: { eq: label } } : {},
+        ],
+      },
+      state: { id: { in: stateIds } },
+      project: { null: true },
+    },
+  });
+
+  return removeChildIssues(issues);
+};
+
 const getProjects = async (linearClient, stateIds, label) => {
   const issues = await linearClient.issues({
     filter: {
@@ -67,31 +72,35 @@ const getProjects = async (linearClient, stateIds, label) => {
       labels: label ? { name: { eq: label } } : {},
     },
   });
+
   const projects = {};
 
-  for (const issue of issues.nodes) {
+  const projectPromises = issues.nodes.map(async (issue) => {
     if (!(issue._project.id in projects)) {
       projects[issue._project.id] = await issue.project;
     }
-  }
+  });
+
+  await Promise.all(projectPromises);
 
   return Object.values(projects).sort(
-    (first, second) => second.progress - first.progress
+    (first, second) => second.progress - first.progress,
   );
 };
 
-const removeChildIssues = (issues) => {
-  issues.nodes = issues.nodes.filter((issue) => issue._parent === undefined);
-  return issues;
-};
+const escapeText = (text) =>
+  text.replace(ESPACE_REGEX, (match) => ESCAPE[match]);
+
+const formatProgress = (progress) =>
+  progress === 1 ? "Completed" : `${(progress * 100).toFixed()}%`;
+
+const formatTargetDate = (targetDate) =>
+  targetDate ? `${new Date(targetDate).toLocaleDateString("de-DE")}` : "/";
 
 const formatIssues = (issues) =>
   issues.nodes
     .map(({ title, url }) => `- <${url}|${escapeText(title)}>`)
     .join("\n") || "_No tickets_";
-
-const escapeText = (text) =>
-  text.replace(ESPACE_REGEX, (match) => ESCAPE[match]);
 
 const formatProjects = (projects) =>
   projects
@@ -102,12 +111,6 @@ const formatProjects = (projects) =>
       return `- ${name}, Progress: ${progress}, Target stage release date: ${targetDate}`;
     })
     .join("\n") || "_No projects_";
-
-const formatProgress = (progress) =>
-  progress === 1 ? "Completed" : `${(progress * 100).toFixed()}%`;
-
-const formatTargetDate = (targetDate) =>
-  targetDate ? `${new Date(targetDate).toLocaleDateString("de-DE")}` : "/";
 
 const hasIssues = (...lists) => lists.some(({ nodes }) => nodes.length);
 
@@ -128,15 +131,15 @@ const run = async () => {
 
     const bugs = await getBugs(linearClient, stateIds, label);
     const chores = await getChores(linearClient, stateIds, label);
-    const fastTracks = await getFastTracks(linearClient, stateIds, label);
+    const features = await getFeatures(linearClient, stateIds, label);
     const other = await getOther(linearClient, stateIds, label);
     const projects = await getProjects(linearClient, stateIds, label);
 
-    core.setOutput("has-issues", hasIssues(bugs, chores, fastTracks, other));
+    core.setOutput("has-issues", hasIssues(bugs, chores, features, other));
 
     const releaseNotes = `
-*Fast Track*
-${formatIssues(fastTracks)}
+*Features*
+${formatIssues(features)}
 *Bugfixes*
 ${formatIssues(bugs)}
 *Chores*

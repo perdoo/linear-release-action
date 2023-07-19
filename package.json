@@ -11,13 +11,15 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "@actions/core": "^1.4.0",
-    "@linear/sdk": "^2.2.0"
+    "@actions/core": "^1.10.0",
+    "@linear/sdk": "^6.0.0"
   },
   "devDependencies": {
-    "eslint": "^8.2.0",
-    "eslint-config-prettier": "8.3.0",
-    "eslint-plugin-prettier": "4.0.0",
-    "prettier": "^2.4.1"
+    "eslint": "^8.45.0",
+    "eslint-config-airbnb-base": "^15.0.0",
+    "eslint-config-prettier": "^8.8.0",
+    "eslint-plugin-import": "^2.27.5",
+    "eslint-plugin-prettier": "^5.0.0",
+    "prettier": "^3.0.0"
   }
 }
