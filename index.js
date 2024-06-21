@@ -11,22 +11,20 @@ const ESCAPE = {
 };
 const ESPACE_REGEX = new RegExp(Object.keys(ESCAPE).join("|"), "gi");
 
-const BUG_LABELS = ["Bug", "Release Blocker"];
-const CHORE_LABELS = ["Chore"];
-const FEATURE_LABELS = ["Feature"];
-const ALL_LABELS = [...BUG_LABELS, ...CHORE_LABELS, ...FEATURE_LABELS];
+const BUG_TEAM = "1ae2c0d6-37ed-4ef9-a66b-a162c9a37800";
+const CHORE_TEAM = "999117b6-36df-4972-ac7f-ede164456461";
+const FEATURE_TEAM = "f34630c7-e326-4d9d-9763-4661f100c6f8";
 
 const removeChildIssues = (issues) => {
   issues.nodes = issues.nodes.filter((issue) => issue._parent === undefined);
   return issues;
 };
 
-const getIssues = async (linearClient, stateIds, releaseLabel, typeLabels) => {
-  const issues = await linearClient.issues({
+const getIssues = async (linearClient, stateIds, releaseLabel, teamId) => {
+  const issues = await linearClient.team(teamId).issues({
     filter: {
       labels: {
         and: [
-          { name: { in: typeLabels } },
           releaseLabel ? { name: { eq: releaseLabel } } : {},
         ],
       },
@@ -39,30 +37,13 @@ const getIssues = async (linearClient, stateIds, releaseLabel, typeLabels) => {
 };
 
 const getBugs = async (linearClient, stateIds, label) =>
-  getIssues(linearClient, stateIds, label, BUG_LABELS);
+  getIssues(linearClient, stateIds, label, BUG_TEAM);
 
 const getChores = async (linearClient, stateIds, label) =>
-  getIssues(linearClient, stateIds, label, CHORE_LABELS);
+  getIssues(linearClient, stateIds, label, CHORE_TEAM);
 
 const getFeatures = async (linearClient, stateIds, label) =>
-  getIssues(linearClient, stateIds, label, FEATURE_LABELS);
-
-const getOther = async (linearClient, stateIds, label) => {
-  const issues = await linearClient.issues({
-    filter: {
-      labels: {
-        and: [
-          { every: { name: { nin: ALL_LABELS } } },
-          label ? { name: { eq: label } } : {},
-        ],
-      },
-      state: { id: { in: stateIds } },
-      project: { null: true },
-    },
-  });
-
-  return removeChildIssues(issues);
-};
+  getIssues(linearClient, stateIds, label, FEATURE_TEAM);
 
 const getProjects = async (linearClient, stateIds, label) => {
   const issues = await linearClient.issues({
@@ -132,10 +113,9 @@ const run = async () => {
     const bugs = await getBugs(linearClient, stateIds, label);
     const chores = await getChores(linearClient, stateIds, label);
     const features = await getFeatures(linearClient, stateIds, label);
-    const other = await getOther(linearClient, stateIds, label);
     const projects = await getProjects(linearClient, stateIds, label);
 
-    core.setOutput("has-issues", hasIssues(bugs, chores, features, other));
+    core.setOutput("has-issues", hasIssues(bugs, chores, features));
 
     const releaseNotes = `
 *Features*
@@ -144,8 +124,6 @@ ${formatIssues(features)}
 ${formatIssues(bugs)}
 *Chores*
 ${formatIssues(chores)}
-*Other*
-${formatIssues(other)}
 *Projects*
 ${formatProjects(projects)}
   `;
