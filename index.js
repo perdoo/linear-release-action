@@ -21,8 +21,9 @@ const removeChildIssues = (issues) => {
 };
 
 const getIssues = async (linearClient, stateIds, releaseLabel, teamId) => {
-  const issues = await linearClient.team(teamId).issues({
+  const issues = await linearClient.issues({
     filter: {
+      team: { id : { eq: teamId } },
       labels: {
         and: [
           releaseLabel ? { name: { eq: releaseLabel } } : {},
