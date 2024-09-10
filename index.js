@@ -14,6 +14,9 @@ const ESPACE_REGEX = new RegExp(Object.keys(ESCAPE).join("|"), "gi");
 const BUG_TEAM = "1ae2c0d6-37ed-4ef9-a66b-a162c9a37800";
 const CHORE_TEAM = "999117b6-36df-4972-ac7f-ede164456461";
 const FEATURE_TEAM = "f34630c7-e326-4d9d-9763-4661f100c6f8";
+const STAGE_FEATURES_ID = "b19b3699-bcb0-40b1-a6a6-84b653413afe";
+const STAGE_CHORES_ID = "0e0387d8-d7cb-4284-95a6-96c7f77aeee8";
+const STAGE_BUGS_ID = "169bfe5a-c896-4175-91c7-5bdc39217c2f";
 
 const removeChildIssues = (issues) => {
   issues.nodes = issues.nodes.filter((issue) => issue._parent === undefined);
@@ -30,6 +33,29 @@ const getIssues = async (linearClient, stateIds, releaseLabel, teamId) => {
         ],
       },
       state: { id: { in: stateIds } },
+    },
+  });
+
+  return removeChildIssues(issues);
+};
+
+const getInProgressIssues = async (linearClient) => {
+  const issues = await linearClient.issues({
+    filter: {
+      or: [
+        {
+          state: {
+            type: { eq: "started" },
+          },
+        },
+        {
+          state: {
+            id: {
+              in: [STAGE_FEATURES_ID, STAGE_BUGS_ID, STAGE_CHORES_ID],
+            },
+          },
+        },
+      ],
     },
   });
 
@@ -114,6 +140,7 @@ const run = async () => {
     const chores = await getChores(linearClient, stateIds, label);
     const features = await getFeatures(linearClient, stateIds, label);
     const projects = await getProjects(linearClient, stateIds, label);
+    const inProgress = await getInProgressIssues(linearClient);
 
     core.setOutput("has-issues", hasIssues(bugs, chores, features));
 
@@ -126,6 +153,9 @@ ${formatIssues(bugs)}
 
 :broom: *Chores*
 ${formatIssues(chores)}
+
+:construction: *In progress*
+${formatIssues(inProgress)}
 
 :dart: *Projects*
 ${formatProjects(projects)}
