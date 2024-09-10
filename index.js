@@ -118,13 +118,16 @@ const run = async () => {
     core.setOutput("has-issues", hasIssues(bugs, chores, features));
 
     const releaseNotes = `
-*Features*
+:ship: *Features*
 ${formatIssues(features)}
-*Bugfixes*
+
+:bug: *Bugfixes*
 ${formatIssues(bugs)}
-*Chores*
+
+:broom: *Chores*
 ${formatIssues(chores)}
-*Projects*
+
+:dart: *Projects*
 ${formatProjects(projects)}
   `;
 
