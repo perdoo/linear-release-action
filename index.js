@@ -30,7 +30,6 @@ const getIssues = async (linearClient, stateIds, releaseLabel, teamId) => {
         ],
       },
       state: { id: { in: stateIds } },
-      project: { null: true },
     },
   });
 
