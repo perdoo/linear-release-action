@@ -18,6 +18,15 @@ const STAGE_FEATURES_ID = "b19b3699-bcb0-40b1-a6a6-84b653413afe";
 const STAGE_CHORES_ID = "0e0387d8-d7cb-4284-95a6-96c7f77aeee8";
 const STAGE_BUGS_ID = "169bfe5a-c896-4175-91c7-5bdc39217c2f";
 
+const daysAgo = (date) => {
+  const now = new Date(); // Current date and time
+  const timeDifference = now.getTime() - date.getTime(); // Difference in milliseconds
+  const millisecondsInDay = 1000 * 60 * 60 * 24; // Milliseconds in a day
+
+  // Convert time difference to days
+  return Math.floor(timeDifference / millisecondsInDay);
+}
+
 const removeChildIssues = (issues) => {
   issues.nodes = issues.nodes.filter((issue) => issue._parent === undefined);
   return issues;
@@ -26,7 +35,7 @@ const removeChildIssues = (issues) => {
 const getIssues = async (linearClient, stateIds, releaseLabel, teamId) => {
   const issues = await linearClient.issues({
     filter: {
-      team: { id : { eq: teamId } },
+      team: { id: { eq: teamId } },
       labels: {
         and: [
           releaseLabel ? { name: { eq: releaseLabel } } : {},
@@ -59,7 +68,9 @@ const getInProgressIssues = async (linearClient) => {
     },
   });
 
-  return removeChildIssues(issues);
+  const withoutChildren = removeChildIssues(issues);
+  withoutChildren.sort((a, b) => a.startedAt.getTime() - b.startedAt.getTime());
+  return withoutChildren;
 };
 
 const getBugs = async (linearClient, stateIds, label) =>
@@ -104,9 +115,15 @@ const formatProgress = (progress) =>
 const formatTargetDate = (targetDate) =>
   targetDate ? `${new Date(targetDate).toLocaleDateString("de-DE")}` : "/";
 
-const formatIssues = (issues) =>
+const formatIssues = (issues, { showAge } = {}) =>
   issues.nodes
-    .map(({ title, url }) => `- <${url}|${escapeText(title)}>`)
+    .map(({ title, url, startedAt }) => {
+      let parsedTitle = `${title}`
+      if (showAge) {
+        parsedTitle = `${title} (Started ${daysAgo(startedAt)}d ago)`
+      }
+      return `- <${url}|${escapeText(parsedTitle)}>`
+    })
     .join("\n") || "_No tickets_";
 
 const formatProjects = (projects) =>
@@ -155,7 +172,7 @@ ${formatIssues(bugs)}
 ${formatIssues(chores)}
 
 :construction: *In progress*
-${formatIssues(inProgress)}
+${formatIssues(inProgress, { showAge: true })}
 
 :dart: *Projects*
 ${formatProjects(projects)}
