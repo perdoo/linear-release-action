@@ -32,6 +32,12 @@ const removeChildIssues = (issues) => {
   return issues;
 };
 
+const assignees = {
+  "a3005857-9dae-4542-a362-f1c4c951affb": "@Diggy",
+  "4d935ad5-cd47-48f9-8267-1f1d41c0a08b": "@jonny",
+  "308eaad1-562f-4e7b-b4dc-c167ca2aa716": "@bogdan"
+}
+
 const getIssues = async (linearClient, stateIds, releaseLabel, teamId) => {
   const issues = await linearClient.issues({
     filter: {
@@ -117,12 +123,19 @@ const formatTargetDate = (targetDate) =>
 
 const formatIssues = (issues, { showAge } = {}) =>
   issues.nodes
-    .map(({ title, url, startedAt }) => {
-      let parsedTitle = `${title}`
+    .map(({ title, url, startedAt, _assignee }) => {
+      const user = assignees[_assignee?.id];
       if (showAge) {
-        parsedTitle = `${title} (Started ${daysAgo(startedAt)}d ago)`
+        if (user) {
+          return `- <${url}|${escapeText(title)}> (Started ${daysAgo(startedAt)}d ago by ${user})`
+        } else {
+          return `- <${url}|${escapeText(title)}> (Started ${daysAgo(startedAt)}d ago)`
+        }
       }
-      return `- <${url}|${escapeText(parsedTitle)}>`
+      if (user) {
+        return `- <${url}|${escapeText(title)}> (:clap::skin-tone-4: ${user})`
+      }
+      return `- <${url}|${escapeText(title)}>`
     })
     .join("\n") || "_No tickets_";
 
