@@ -75,7 +75,7 @@ const getInProgressIssues = async (linearClient) => {
   });
 
   const withoutChildren = removeChildIssues(issues);
-  withoutChildren.sort((a, b) => a.startedAt.getTime() - b.startedAt.getTime());
+  withoutChildren.nodes.sort((a, b) => a.startedAt.getTime() - b.startedAt.getTime());
   return withoutChildren;
 };
 
