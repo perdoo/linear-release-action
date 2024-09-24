@@ -54,7 +54,9 @@ const getIssues = async (linearClient, stateIds, releaseLabel, teamId) => {
   return removeChildIssues(issues);
 };
 
-const getInProgressIssues = async (linearClient) => {
+const getInProgressIssues = async (linearClient, stateIds = []) => {
+  const stageStates = [STAGE_FEATURES_ID, STAGE_BUGS_ID, STAGE_CHORES_ID];
+  const inProgressStates = stageStates.filter(state => !stateIds.includes(state));
   const issues = await linearClient.issues({
     filter: {
       or: [
@@ -66,7 +68,7 @@ const getInProgressIssues = async (linearClient) => {
         {
           state: {
             id: {
-              in: [STAGE_FEATURES_ID, STAGE_BUGS_ID, STAGE_CHORES_ID],
+              in: inProgressStates,
             },
           },
         },
@@ -170,7 +172,7 @@ const run = async () => {
     const chores = await getChores(linearClient, stateIds, label);
     const features = await getFeatures(linearClient, stateIds, label);
     const projects = await getProjects(linearClient, stateIds, label);
-    const inProgress = await getInProgressIssues(linearClient);
+    const inProgress = await getInProgressIssues(linearClient, stateIds);
 
     core.setOutput("has-issues", hasIssues(bugs, chores, features));
 
