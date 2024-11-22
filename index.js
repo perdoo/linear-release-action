@@ -77,7 +77,7 @@ const getInProgressIssues = async (linearClient, stateIds = []) => {
   });
 
   const withoutChildren = removeChildIssues(issues);
-  withoutChildren.nodes.sort((a, b) => a.startedAt.getTime() - b.startedAt.getTime());
+  withoutChildren.nodes.sort((a, b) => a.startedAt?.getTime() - b.startedAt?.getTime());
   return withoutChildren;
 };
 
@@ -127,7 +127,7 @@ const formatIssues = (issues, { showAge } = {}) =>
   issues.nodes
     .map(({ title, url, startedAt, _assignee }) => {
       const user = assignees[_assignee?.id];
-      if (showAge) {
+      if (showAge && startedAt) {
         if (user) {
           return `- <${url}|${escapeText(title)}> (Started ${daysAgo(startedAt)}d ago by ${user})`
         } else {
