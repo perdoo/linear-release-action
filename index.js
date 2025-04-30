@@ -11,12 +11,14 @@ const ESCAPE = {
 };
 const ESPACE_REGEX = new RegExp(Object.keys(ESCAPE).join("|"), "gi");
 
-const BUG_TEAM = "1ae2c0d6-37ed-4ef9-a66b-a162c9a37800";
-const CHORE_TEAM = "999117b6-36df-4972-ac7f-ede164456461";
-const FEATURE_TEAM = "f34630c7-e326-4d9d-9763-4661f100c6f8";
 const STAGE_FEATURES_ID = "b19b3699-bcb0-40b1-a6a6-84b653413afe";
 const STAGE_CHORES_ID = "0e0387d8-d7cb-4284-95a6-96c7f77aeee8";
 const STAGE_BUGS_ID = "169bfe5a-c896-4175-91c7-5bdc39217c2f";
+
+const BUG_LABELS = ["Bug", "Release Blocker"];
+const CHORE_LABELS = ["Chore"];
+const FEATURE_LABELS = ["Feature"];
+const ALL_LABELS = [...BUG_LABELS, ...CHORE_LABELS, ...FEATURE_LABELS];
 
 const daysAgo = (date) => {
   const now = new Date(); // Current date and time
@@ -38,12 +40,12 @@ const assignees = {
   "308eaad1-562f-4e7b-b4dc-c167ca2aa716": "<@U07GU74JBS5>" // bogdan
 }
 
-const getIssues = async (linearClient, stateIds, releaseLabel, teamId) => {
+const getIssues = async (linearClient, stateIds, releaseLabel, typeLabels) => {
   const issues = await linearClient.issues({
     filter: {
-      team: { id: { eq: teamId } },
       labels: {
         and: [
+          { name: { in: typeLabels } },
           releaseLabel ? { name: { eq: releaseLabel } } : {},
         ],
       },
@@ -76,19 +78,35 @@ const getInProgressIssues = async (linearClient, stateIds = []) => {
     },
   });
 
-  const withoutChildren = removeChildIssues(issues);
+const getOther = async (linearClient, stateIds, label) => {
+  const issues = await linearClient.issues({
+    filter: {
+      labels: {
+        and: [
+          { every: { name: { nin: ALL_LABELS } } },
+          label ? { name: { eq: label } } : {},
+        ],
+      },
+      state: { id: { in: stateIds } },
+    },
+  });
+
+  return removeChildIssues(issues);
+};
+
+const withoutChildren = removeChildIssues(issues);
   withoutChildren.nodes.sort((a, b) => a.startedAt?.getTime() - b.startedAt?.getTime());
   return withoutChildren;
 };
 
 const getBugs = async (linearClient, stateIds, label) =>
-  getIssues(linearClient, stateIds, label, BUG_TEAM);
+  getIssues(linearClient, stateIds, label, BUG_LABELS);
 
 const getChores = async (linearClient, stateIds, label) =>
-  getIssues(linearClient, stateIds, label, CHORE_TEAM);
+  getIssues(linearClient, stateIds, label, CHORE_LABELS);
 
 const getFeatures = async (linearClient, stateIds, label) =>
-  getIssues(linearClient, stateIds, label, FEATURE_TEAM);
+  getIssues(linearClient, stateIds, label, FEATURE_LABELS);
 
 const getProjects = async (linearClient, stateIds, label) => {
   const issues = await linearClient.issues({
@@ -171,10 +189,11 @@ const run = async () => {
     const bugs = await getBugs(linearClient, stateIds, label);
     const chores = await getChores(linearClient, stateIds, label);
     const features = await getFeatures(linearClient, stateIds, label);
+    const other = await getOther(linearClient, stateIds, label);
     const projects = await getProjects(linearClient, stateIds, label);
     const inProgress = await getInProgressIssues(linearClient, stateIds);
 
-    core.setOutput("has-issues", hasIssues(bugs, chores, features));
+    core.setOutput("has-issues", hasIssues(bugs, chores, features, other));
 
     const releaseNotes = `
 :ship: *Features*
@@ -185,6 +204,9 @@ ${formatIssues(bugs)}
 
 :broom: *Chores*
 ${formatIssues(chores)}
+
+:question: *Unlabelled*
+${formatIssues(other)}
 
 :construction: *In progress*
 ${formatIssues(inProgress, { showAge: true })}
