@@ -77,6 +77,11 @@ const getInProgressIssues = async (linearClient, stateIds = []) => {
       ],
     },
   });
+  
+  const withoutChildren = removeChildIssues(issues);
+  withoutChildren.nodes.sort((a, b) => a.startedAt?.getTime() - b.startedAt?.getTime());
+  return withoutChildren;
+};
 
 const getOther = async (linearClient, stateIds, label) => {
   const issues = await linearClient.issues({
@@ -92,11 +97,6 @@ const getOther = async (linearClient, stateIds, label) => {
   });
 
   return removeChildIssues(issues);
-};
-
-const withoutChildren = removeChildIssues(issues);
-  withoutChildren.nodes.sort((a, b) => a.startedAt?.getTime() - b.startedAt?.getTime());
-  return withoutChildren;
 };
 
 const getBugs = async (linearClient, stateIds, label) =>
