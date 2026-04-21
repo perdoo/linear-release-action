@@ -37,7 +37,8 @@ const removeChildIssues = (issues) => {
 const assignees = {
   "a3005857-9dae-4542-a362-f1c4c951affb": "<@U025B250BP0>", // diggy
   "4d935ad5-cd47-48f9-8267-1f1d41c0a08b": "<@U033SAW6E>", // jonny
-  "308eaad1-562f-4e7b-b4dc-c167ca2aa716": "<@U07GU74JBS5>" // bogdan
+  "308eaad1-562f-4e7b-b4dc-c167ca2aa716": "<@U07GU74JBS5>", // bogdan
+  "b5f3c511-50e7-45b9-93b2-e47f37e829fa": "<@U020LK4A4R3>" // thomas
 }
 
 const getIssues = async (linearClient, stateIds, releaseLabel, typeLabels) => {
